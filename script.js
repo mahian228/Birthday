@@ -468,6 +468,13 @@ function spawnParticle(x, yOverride, isBurst) {
         return;
     }
 
+    let container = document.getElementById('sparkle-container');
+    if (!container) {
+        container = document.createElement('div');
+        container.id = 'sparkle-container';
+        document.body.appendChild(container);
+    }
+
     const el = document.createElement('div');
     const isHeart = Math.random() > 0.45;
     el.className = 'sparkle';
@@ -491,7 +498,7 @@ function spawnParticle(x, yOverride, isBurst) {
     el.style.setProperty('--dx', (Math.random() * 120 - 60) + 'px');
     el.style.animationDuration = duration + 's';
 
-    document.body.appendChild(el);
+    container.appendChild(el);
     setTimeout(() => el.remove(), duration * 1000);
 }
 

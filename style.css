@@ -68,6 +68,14 @@ button {
     z-index: 0;
     pointer-events: none;
     will-change: transform;
+    transform: translate3d(0, 0, 0);
+    backface-visibility: hidden;
+}
+
+@media (max-width: 600px) {
+    .bg-blob {
+        filter: blur(35px);
+    }
 }
 
 .blob-a {
@@ -980,6 +988,7 @@ button {
     width: 100%;
     margin-top: 10px;
     padding-top: 10px;
+    contain: layout;
 }
 
 .v-bar {
@@ -989,7 +998,14 @@ button {
     border: 2px solid var(--ink);
     box-sizing: border-box;
     will-change: height;
-    transition: height 0.05s ease;
+}
+
+#sparkle-container {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 999;
+    contain: layout size paint;
 }
 
 .v-bar:nth-child(4n+1) {
