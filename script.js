@@ -36,12 +36,14 @@ giftBtn.addEventListener('click', () => {
 });
 
 // ---- progress and section locking system ----
-const stages = ['music', 'cake', 'message', 'mementos'];
+const stages = ['music', 'cake', 'quiz', 'message', 'mementos', 'jar'];
 const cards = {
     music: document.getElementById('card-music'),
     cake: document.getElementById('card-cake'),
+    quiz: document.getElementById('card-quiz'),
     message: document.getElementById('card-message'),
-    mementos: document.getElementById('card-mementos')
+    mementos: document.getElementById('card-mementos'),
+    jar: document.getElementById('card-jar')
 };
 
 let birthdayStage = 0;
@@ -100,16 +102,20 @@ document.querySelectorAll('.gift-card').forEach(card => {
     card.addEventListener('click', () => {
         if (card.classList.contains('locked')) return;
         
-        // If clicking mementos, set stage to 4 to mark it complete
-        if (card.dataset.target === 'mementos') {
-            if (getBirthdayStage() < 4) {
-                setBirthdayStage(4);
+        if (card.dataset.target === 'jar') {
+            if (jarModal) {
+                jarModal.classList.add('active');
+                drawLoveNote();
             }
+            playLoveStory();
+            return;
         }
 
         hubWrap.style.display = 'none';
         const target = document.getElementById('panel-' + card.dataset.target);
-        target.classList.add('active', 'section-fade');
+        if (target) {
+            target.classList.add('active', 'section-fade');
+        }
     });
 });
 
@@ -123,8 +129,8 @@ document.querySelectorAll('.back-btn').forEach(btn => {
                     setBirthdayStage(1);
                 }
             } else if (panelId === 'panel-message') {
-                if (getBirthdayStage() < 3) {
-                    setBirthdayStage(3);
+                if (getBirthdayStage() < 4) {
+                    setBirthdayStage(4);
                 }
                 // Reset envelope opening state when leaving the panel
                 const envelope = document.querySelector('.envelope-pixel');
@@ -136,6 +142,10 @@ document.querySelectorAll('.back-btn').forEach(btn => {
                 if (el) el.textContent = '';
                 const heartEl = document.getElementById('typewriter-heart');
                 if (heartEl) heartEl.style.display = 'none';
+            } else if (panelId === 'panel-mementos') {
+                if (getBirthdayStage() < 5) {
+                    setBirthdayStage(5);
+                }
             }
         }
 
@@ -152,6 +162,94 @@ const playBtn = document.getElementById('play-btn');
 const audioElement = document.getElementById('audio-element');
 const bars = document.querySelectorAll('.v-bar');
 let playing = false;
+
+let loveStoryAudio = null;
+let loveStoryPlayCount = 0;
+
+function showWishPopup() {
+    const overlay = document.createElement('div');
+    overlay.className = 'modal-overlay active';
+    overlay.style.zIndex = '2000';
+    
+    const content = document.createElement('div');
+    content.className = 'modal-content pixel-frame';
+    content.style.maxWidth = '300px';
+    
+    const closeBtn = document.createElement('button');
+    closeBtn.className = 'close-modal-btn';
+    closeBtn.innerHTML = '&times;';
+    closeBtn.addEventListener('click', () => overlay.remove());
+    
+    const heartSvg = `<div style="display: block; text-align: center; margin-bottom: 12px;">
+        <svg class="pixel-heart-svg lg glow" style="--c:var(--red); display: block; width: 56px; height: 48px; margin: 0 auto;" viewBox="0 0 7 6">
+            <path d="M1,0 h2 v1 h1 v-1 h2 v1 h1 v2 h-1 v1 h-1 v1 h-1 v1 h-1 v-1 h-1 v-1 h-1 v-1 h-1 v-2 h1 v-1 z" fill="currentColor" />
+        </svg>
+    </div>`;
+    
+    const message = document.createElement('p');
+    message.style.fontSize = '1.25rem';
+    message.style.lineHeight = '1.4';
+    message.style.margin = '0 0 16px 0';
+    message.textContent = "Have a  great day and best of luck for the upcoming days!";
+    
+    const okBtn = document.createElement('button');
+    okBtn.className = 'pixel-frame-sm';
+    okBtn.style.background = 'var(--red)';
+    okBtn.style.color = 'var(--cream)';
+    okBtn.style.border = '2px solid var(--ink)';
+    okBtn.style.padding = '6px 16px';
+    okBtn.style.fontSize = '1rem';
+    okBtn.textContent = 'Thank you! ❤️';
+    okBtn.addEventListener('click', () => overlay.remove());
+    
+    content.appendChild(closeBtn);
+    content.innerHTML += heartSvg;
+    content.appendChild(message);
+    content.appendChild(okBtn);
+    overlay.appendChild(content);
+    document.body.appendChild(overlay);
+    
+    overlay.addEventListener('click', (e) => {
+        if (e.target === overlay) overlay.remove();
+    });
+}
+
+function playLoveStory() {
+    // Stop the blue song if playing
+    if (playing) {
+        audioElement.pause();
+        playing = false;
+        if (vinyl) vinyl.classList.remove('spinning');
+        if (tonearm) tonearm.classList.remove('dropped');
+        if (playBtn) playBtn.innerHTML = '&#9658; play';
+        if (bars) {
+            bars.forEach((bar, index) => {
+                currentHeights[index] = 6;
+                bar.style.height = '6px';
+            });
+        }
+        document.documentElement.style.setProperty('--music-beat-scale', '1');
+    }
+    
+    // Play Love Story
+    if (!loveStoryAudio) {
+        loveStoryAudio = new Audio('Love-Story.mp3');
+        loveStoryAudio.addEventListener('ended', () => {
+            loveStoryPlayCount++;
+            if (loveStoryPlayCount < 2) {
+                loveStoryAudio.currentTime = 0;
+                loveStoryAudio.play().catch(err => console.error(err));
+            } else {
+                loveStoryPlayCount = 0;
+                showWishPopup();
+            }
+        });
+    }
+    
+    loveStoryPlayCount = 0;
+    loveStoryAudio.currentTime = 0;
+    loveStoryAudio.play().catch(err => console.error("Love Story playback failed:", err));
+}
 
 // ---- Synced lyrics for "Blue" by yung kai ----
 const songLyrics = [
@@ -661,7 +759,188 @@ window.addEventListener('keydown', (e) => {
     }
     // Press 'u' or 'U' to bypass and unlock all sections
     if (e.key === 'u' || e.key === 'U') {
-        setBirthdayStage(4);
+        setBirthdayStage(6);
         console.log("Developer Bypass: All sections unlocked.");
     }
 });
+
+// ============ QUIZ SYSTEM LOGIC ============
+const quizQuestions = [
+    {
+        question: "When did we first meet in person?",
+        options: ["8th September 2024", "10th September 2024", "10th April 2025"],
+        answer: 0
+    },
+    {
+        question: "Who confessed first (and how)?",
+        options: ["Mahian did, very romantically", "Riham did (but Mahian tricked her!)", "It was a mutual double-confession"],
+        answer: 1
+    },
+    {
+        question: "Where did we go on our first official date?",
+        options: ["A cozy local cafe", "The beautiful beach", "A quiet nature park"],
+        answer: 1
+    }
+];
+
+let currentQuestionIndex = 0;
+const quizQuestionEl = document.getElementById('quiz-question');
+const quizOptionsEl = document.getElementById('quiz-options');
+const quizFeedbackEl = document.getElementById('quiz-feedback');
+const quizProgressFillEl = document.getElementById('quiz-progress-fill');
+const quizQNumEl = document.getElementById('quiz-q-num');
+
+function loadQuizQuestion() {
+    if (!quizQuestionEl) return;
+    const currentQ = quizQuestions[currentQuestionIndex];
+    quizQuestionEl.textContent = currentQ.question;
+    quizFeedbackEl.textContent = "";
+    
+    // Update progress
+    quizQNumEl.textContent = `Question ${currentQuestionIndex + 1} of ${quizQuestions.length}`;
+    const progressPct = (currentQuestionIndex / quizQuestions.length) * 100;
+    quizProgressFillEl.style.width = progressPct + '%';
+
+    quizOptionsEl.innerHTML = "";
+    currentQ.options.forEach((option, idx) => {
+        const btn = document.createElement('button');
+        btn.className = "quiz-opt-btn pixel-frame-sm";
+        btn.textContent = option;
+        btn.addEventListener('click', () => handleQuizAnswer(idx, btn));
+        quizOptionsEl.appendChild(btn);
+    });
+}
+
+function handleQuizAnswer(selectedIdx, selectedBtn) {
+    const currentQ = quizQuestions[currentQuestionIndex];
+    const buttons = quizOptionsEl.querySelectorAll('.quiz-opt-btn');
+    
+    buttons.forEach(btn => btn.disabled = true);
+
+    if (selectedIdx === currentQ.answer) {
+        selectedBtn.classList.add('correct');
+        quizFeedbackEl.textContent = "✨ Correct! Sweet memory. ✨";
+        
+        const rect = selectedBtn.getBoundingClientRect();
+        for (let i = 0; i < 4; i++) {
+            burst(rect.left + rect.width / 2, rect.top);
+        }
+
+        setTimeout(() => {
+            currentQuestionIndex++;
+            if (currentQuestionIndex < quizQuestions.length) {
+                loadQuizQuestion();
+            } else {
+                quizProgressFillEl.style.width = '100%';
+                quizQuestionEl.textContent = "🎉 You know us perfectly!";
+                quizOptionsEl.innerHTML = "";
+                quizFeedbackEl.textContent = "Love Note is now unlocked! 💌";
+                
+                if (getBirthdayStage() < 3) {
+                    setBirthdayStage(3);
+                }
+
+                for (let i = 0; i < 15; i++) {
+                    burst(Math.random() * window.innerWidth, Math.random() * window.innerHeight);
+                }
+            }
+        }, 1500);
+    } else {
+        selectedBtn.classList.add('wrong');
+        quizFeedbackEl.textContent = "🤫 Close! Think back to our timeline...";
+        
+        setTimeout(() => {
+            buttons.forEach(btn => {
+                btn.disabled = false;
+                btn.classList.remove('wrong');
+            });
+        }, 1200);
+    }
+}
+
+loadQuizQuestion();
+
+// ============ LOVE JAR WIDGET LOGIC ============
+const loveJarMessages = [
+    "You are the answer to all my prayers. 🤲",
+    "I can't wait for the day we share the same home and night skies. 🏡",
+    "I love the sparkle in your eyes when you look at me. 💕",
+    "You are my greatest blessing, Riham. 🌸",
+    "I promise to hold your hand through every storm and every sunshine. ☀️",
+    "Two years with you felt like a beautiful dream I never want to wake up from.",
+    "I fell in love with your soul before I could even touch your hand. 💫",
+    "May Allah bless us with endless sabr, mercy, and love. 🤲",
+    "You are my today, my tomorrow, and my forever. 👩‍❤️‍👨",
+    "I love you more than words could ever describe, Riham.",
+    "Being with you makes me the happiest version of myself. 💖",
+    "I thank Allah every day for bringing you into my life. 🌸",
+    "Hope you understand my feeling when you're angry. 🥺"
+];
+
+const loveJarWidget = document.getElementById('love-jar-widget');
+const jarModal = document.getElementById('jar-modal');
+const closeJarBtn = document.getElementById('close-jar-btn');
+const drawAgainBtn = document.getElementById('draw-again-btn');
+const jarNoteText = document.getElementById('jar-note-text');
+const modalJarSvg = document.getElementById('modal-jar-svg');
+
+if (loveJarWidget) {
+    loveJarWidget.addEventListener('click', () => {
+        jarModal.classList.add('active');
+        drawLoveNote();
+        playLoveStory();
+    });
+}
+
+if (closeJarBtn) {
+    closeJarBtn.addEventListener('click', () => {
+        jarModal.classList.remove('active');
+    });
+}
+
+if (jarModal) {
+    jarModal.addEventListener('click', (e) => {
+        if (e.target === jarModal) {
+            jarModal.classList.remove('active');
+        }
+    });
+}
+
+if (drawAgainBtn) {
+    drawAgainBtn.addEventListener('click', () => {
+        drawLoveNote();
+    });
+}
+
+function drawLoveNote() {
+    if (!modalJarSvg) return;
+    
+    modalJarSvg.classList.add('shaking-jar');
+    jarNoteText.style.opacity = '0';
+    jarNoteText.classList.remove('fade-in-text');
+    drawAgainBtn.disabled = true;
+
+    setTimeout(() => {
+        modalJarSvg.classList.remove('shaking-jar');
+        
+        const randomMsg = loveJarMessages[Math.floor(Math.random() * loveJarMessages.length)];
+        jarNoteText.textContent = `"${randomMsg}"`;
+        
+        jarNoteText.classList.add('fade-in-text');
+        drawAgainBtn.disabled = false;
+        drawAgainBtn.textContent = "Draw Another";
+        
+        const rect = modalJarSvg.getBoundingClientRect();
+        for (let i = 0; i < 5; i++) {
+            burst(rect.left + rect.width / 2, rect.top + rect.height / 2);
+        }
+
+        // Sprinkle sparkles on the text area as it fades in
+        const textRect = jarNoteText.getBoundingClientRect();
+        for (let i = 0; i < 6; i++) {
+            setTimeout(() => {
+                burst(textRect.left + Math.random() * textRect.width, textRect.top + Math.random() * textRect.height);
+            }, i * 80);
+        }
+    }, 600);
+}
